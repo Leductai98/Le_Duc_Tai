@@ -85,13 +85,11 @@ function App() {
   }, []);
 
   const renderRate = useCallback(() => {
-    if (from && to) {
+    if (from && to && amount && amount !== "0") {
       return `${amount} ${from.currency} = ${(
         (to.price / from.price) *
         Number(amount)
-      ).toFixed(2)} ${to.currency}`;
-    } else {
-      message.error("Please select from and to", 3);
+      ).toFixed(4)} ${to.currency}`;
     }
   }, [from, to, amount]);
 
@@ -104,14 +102,40 @@ function App() {
     }
   }, []);
 
+  const handleKeydown = useCallback(
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      const notAcceptKey = ["+", "-", "*", "/", "e"];
+      const key = event.key;
+      if (notAcceptKey.includes(key)) {
+        event.preventDefault();
+      }
+    },
+    []
+  );
+
   const handleChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value;
-    setAmount(value);
+    const inputValue = event.target.value;
+    const numericValue = parseFloat(inputValue);
+    if (isNaN(Number(inputValue))) {
+      return;
+    }
+    if (isNaN(numericValue)) {
+      setAmount(inputValue);
+      return;
+    }
+
+    const decimalPlaces = inputValue.split(".")[1]?.length || 0;
+    if (decimalPlaces <= 4) {
+      setAmount(inputValue);
+    } else {
+      const formattedValue = numericValue.toFixed(4);
+      setAmount(formattedValue);
+    }
   }, []);
 
   const handleSwap = useCallback(() => {
     let timeOut: number;
-    if (from && to && amount !== "" && amount !== 0) {
+    if (from && to && amount !== "" && amount !== "0") {
       setLoading(true);
       timeOut = setTimeout(() => {
         setLoading(false);
@@ -119,7 +143,7 @@ function App() {
         message.success("Swap successfully completed", 3);
       }, 3000);
     } else {
-      if (amount === "" || amount === 0) {
+      if (amount === "" || amount === "0") {
         message.error("Please fill amount");
       } else if (!from) {
         message.error("Please fill from token");
@@ -142,6 +166,8 @@ function App() {
             <input
               type="number"
               value={amount}
+              placeholder="0.0000"
+              onKeyDown={(event) => handleKeydown(event)}
               onChange={(event) => handleChange(event)}
             />
           </div>
@@ -167,7 +193,7 @@ function App() {
               />
             </div>
           </div>
-          {from && to && amount ? (
+          {from && to && amount && amount !== "0" ? (
             <div className="exchange-rate">{renderRate()}</div>
           ) : (
             <div className="exchange-rate">Getting exchange rate...</div>
